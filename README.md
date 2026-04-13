@@ -6,7 +6,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Maintenance](https://img.shields.io/badge/maintained-yes-brightgreen)
 
-Real-time SSH login alerting via email, triggered directly from `~/.bash_profile`. Sends an immediate email on every SSH login — including your own — with the connecting IP address, username, authentication method, and timestamp.
+Real-time SSH login alerting via email, triggered directly from `~/.bash_profile`. Sends an immediate email on every SSH login, with the connecting IP address, username, authentication method, and timestamp.
 
 No daemons, no dependencies beyond the Python standard library, no root access required. Works on shared hosting.
 
