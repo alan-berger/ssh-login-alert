@@ -64,7 +64,7 @@ If this was not you, take action immediately.
 
 ## Installation
 
-### Step 1 — Login logger
+### Step 1, Login logger
 
 Add these lines to `~/.bash_profile`:
 
@@ -88,7 +88,7 @@ You should see a line like:
 
 > **Note on auth method:** `$SSH_AUTH_INFO_0` requires OpenSSH 7.8 or later. On older systems (e.g. CentOS 7 ships OpenSSH 7.4) the field will show `unknown`. Everything else functions normally.
 
-### Step 2 — Config file
+### Step 2, Config file
 
 Create `~/.ssh_login_monitor.conf`. Choose either `sendmail` or `smtp` as your delivery method.
 
@@ -123,7 +123,7 @@ Secure the config file:
 chmod 600 ~/.ssh_login_monitor.conf
 ```
 
-### Step 3 — Deploy the script
+### Step 3, Deploy the script
 
 ```bash
 mkdir -p ~/bin ~/logs
@@ -139,7 +139,7 @@ which python3
 
 Update the path in `~/.bash_profile` if it differs from `/usr/bin/python3`.
 
-### Step 4 — Optional cron fallback
+### Step 4, Optional cron fallback
 
 Add a cron job as a safety net in case the script fails silently during a login:
 
@@ -147,7 +147,7 @@ Add a cron job as a safety net in case the script fails silently during a login:
 * * * * * /usr/bin/python3 ~/bin/ssh_login_monitor.py
 ```
 
-The script is idempotent — if no new logins are detected it exits silently.
+The script is idempotent, if no new logins are detected it exits silently.
 
 ---
 
@@ -164,7 +164,7 @@ cat ~/logs/ssh_login_monitor.log
 Expected output:
 
 ```
-[2026-04-13 16:35:27] First run — seeding state with 3 existing entries
+[2026-04-13 16:35:27] First run, seeding state with 3 existing entries
 ```
 
 ---
@@ -175,7 +175,7 @@ Expected output:
 |---|---|
 | `~/.ssh_logins` | Append-only login log written by `~/.bash_profile` |
 | `~/.ssh_login_monitor.conf` | Configuration (delivery method, addresses, SMTP credentials) |
-| `~/.ssh_login_monitor.state` | Single integer — line count at last successful alert |
+| `~/.ssh_login_monitor.state` | Single integer, line count at last successful alert |
 | `~/logs/ssh_login_monitor.log` | Operational log for debugging |
 
 ---
@@ -252,7 +252,7 @@ def store_count(count: int):
     STATE_FILE.write_text(str(count))
 ```
 
-The state file contains a single integer — the number of lines in `~/.ssh_logins` at the time of the last successfully sent alert. `-1` is the sentinel value for "state file does not exist yet" (first run). This number is what allows the script to know which lines are new on each execution.
+The state file contains a single integer, the number of lines in `~/.ssh_logins` at the time of the last successfully sent alert. `-1` is the sentinel value for "state file does not exist yet" (first run). This number is what allows the script to know which lines are new on each execution.
 
 ---
 
@@ -273,7 +273,7 @@ Splits a line like `2026-04-13 16:46:59 +0100 81.152.11.244 alice publickey` int
 
 ---
 
-### main() — the core logic
+### main(), the core logic
 
 ```python
 lines         = [l.strip() for l in LOGINLOG.read_text().splitlines() if l.strip()]
@@ -286,18 +286,18 @@ Reads the entire `~/.ssh_logins` file and counts the non-empty lines. Compares a
 ```python
 if stored_count == -1:
     store_count(current_count)
-    log(f"First run — seeding state with {current_count} existing entries")
+    log(f"First run, seeding state with {current_count} existing entries")
     return
 ```
 
-First run only — writes the current line count to the state file and exits without sending any alerts. This prevents alerting on historical logins that predate deployment.
+First run only, writes the current line count to the state file and exits without sending any alerts. This prevents alerting on historical logins that predate deployment.
 
 ```python
 if current_count <= stored_count:
     return
 ```
 
-Nothing new — exit silently. This is the path taken on the vast majority of executions.
+Nothing new, exit silently. This is the path taken on the vast majority of executions.
 
 ```python
 new_lines = lines[stored_count:]
@@ -325,7 +325,7 @@ else:
     store_count(failed_index)
 ```
 
-This is the careful part — state only advances as far as the last successfully delivered alert. If sending fails partway through a batch, the next execution retries from the failure point rather than silently skipping undelivered alerts.
+This is the careful part, state only advances as far as the last successfully delivered alert. If sending fails partway through a batch, the next execution retries from the failure point rather than silently skipping undelivered alerts.
 
 ---
 
