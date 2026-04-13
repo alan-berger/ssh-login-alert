@@ -43,7 +43,7 @@ Because the script is called directly by the login event, alerts are sent immedi
 ```
 New SSH login detected on <HOST>.
 
-IP address   : 81.152.11.244
+IP address   : x.x.x.x
 Username     : alice
 Auth method  : publickey
 Login time   : 2026-04-13 16:46:59 +0100
