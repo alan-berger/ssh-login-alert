@@ -83,7 +83,7 @@ cat ~/.ssh_logins
 You should see a line like:
 
 ```
-2026-04-13 16:46:59 +0100 81.152.11.244 alice publickey
+2026-04-13 16:46:59 +0100 1.2.3.4 alice publickey
 ```
 
 > **Note on auth method:** `$SSH_AUTH_INFO_0` requires OpenSSH 7.8 or later. On older systems (e.g. CentOS 7 ships OpenSSH 7.4) the field will show `unknown`. Everything else functions normally.
