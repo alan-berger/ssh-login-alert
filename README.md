@@ -35,7 +35,7 @@ Because the script is called directly by the login event, alerts are sent immedi
 ### Example log entry
 
 ```
-2026-04-13 16:46:59 +0100 81.152.11.244 alice publickey
+2026-04-13 16:46:59 +0100 1.2.3.4 alice publickey
 ```
 
 ### Example alert email
@@ -43,7 +43,7 @@ Because the script is called directly by the login event, alerts are sent immedi
 ```
 New SSH login detected on <HOST>.
 
-IP address   : x.x.x.x
+IP address   : 1.2.3.4
 Username     : alice
 Auth method  : publickey
 Login time   : 2026-04-13 16:46:59 +0100
