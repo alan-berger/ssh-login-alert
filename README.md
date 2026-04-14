@@ -269,7 +269,7 @@ def parse_login_line(line: str) -> dict:
     }
 ```
 
-Splits a line like `2026-04-13 16:46:59 +0100 81.152.11.244 alice publickey` into its components by position. `auth_method` defaults to `unknown` defensively if the field is absent — for example in log entries written before this feature was added, or on systems where `$SSH_AUTH_INFO_0` is unavailable.
+Splits a line like `2026-04-13 16:46:59 +0100 1.2.3.4 alice publickey` into its components by position. `auth_method` defaults to `unknown` defensively if the field is absent — for example in log entries written before this feature was added, or on systems where `$SSH_AUTH_INFO_0` is unavailable.
 
 ---
 
