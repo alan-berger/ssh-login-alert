@@ -12,6 +12,7 @@ import configparser
 import socket
 from datetime import datetime
 from email.mime.text import MIMEText
+from email.utils import make_msgid, formatdate
 from pathlib import Path
 
 HOME        = Path.home()
@@ -40,9 +41,12 @@ def send_email(cfg: configparser.ConfigParser, subject: str, body: str):
     method    = cfg["alert"].get("method", "sendmail").lower()
 
     msg = MIMEText(body, "plain")
-    msg["Subject"] = subject
-    msg["From"]    = from_addr
-    msg["To"]      = to_addr
+    msg["Subject"]    = subject
+    msg["From"]       = from_addr
+    msg["To"]         = to_addr
+    msg["Date"]       = formatdate(localtime=True)
+    domain = from_addr.split("@")[-1]
+    msg["Message-ID"] = make_msgid(domain=domain)
 
     if method == "smtp":
         host      = cfg["smtp"]["host"]
