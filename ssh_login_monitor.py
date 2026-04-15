@@ -84,14 +84,16 @@ def store_count(count: int):
     STATE_FILE.write_text(str(count))
 
 def parse_login_line(line: str) -> dict:
-    """Parse 'YYYY-MM-DD HH:MM:SS +TZ IP' into a dict."""
+    """Parse 'YYYY-MM-DD HH:MM:SS +TZ IP USERNAME AUTHMETHOD' into a dict."""
     try:
         parts = line.strip().split()
-        ip        = parts[3]
-        timestamp = f"{parts[0]} {parts[1]} {parts[2]}"
-        return {"ip": ip, "timestamp": timestamp}
+        timestamp   = f"{parts[0]} {parts[1]} {parts[2]}"
+        ip          = parts[3]
+        username    = parts[4] if len(parts) > 4 else "unknown"
+        auth_method = parts[5] if len(parts) > 5 else "unknown"
+        return {"ip": ip, "timestamp": timestamp, "username": username, "auth_method": auth_method}
     except (IndexError, ValueError):
-        return {"ip": "unknown", "timestamp": line.strip()}
+        return {"ip": "unknown", "timestamp": line.strip(), "username": "unknown", "auth_method": "unknown"}
 
 def main():
     if not LOGINLOG.exists():
@@ -117,16 +119,18 @@ def main():
 
     for line in new_lines:
         parsed  = parse_login_line(line)
-        subject = f"[{hostname}] SSH login from {parsed['ip']}"
+        subject = f"[{hostname}] SSH login from {parsed['ip']} ({parsed['username']})"
         body = (
             f"New SSH login detected on {hostname}.\n\n"
-            f"IP address : {parsed['ip']}\n"
-            f"Login time : {parsed['timestamp']}\n\n"
+            f"IP address  : {parsed['ip']}\n"
+            f"Username    : {parsed['username']}\n"
+            f"Auth method : {parsed['auth_method']}\n"
+            f"Login time  : {parsed['timestamp']}\n\n"
             f"If this was not you, take action immediately.\n"
         )
         try:
             send_email(cfg, subject, body)
-            log(f"Alert sent — login from {parsed['ip']} at {parsed['timestamp']}")
+            log(f"Alert sent — login from {parsed['ip']} as {parsed['username']} ({parsed['auth_method']}) at {parsed['timestamp']}")
         except Exception as e:
             log(f"ERROR sending alert for {parsed['ip']}: {e}")
             errors.append(line)
