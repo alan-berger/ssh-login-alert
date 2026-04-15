@@ -19,7 +19,7 @@ Two components work together:
 **1. A one-liner in `~/.bash_profile`** writes a record to `~/.ssh_logins` on every login, then immediately calls the monitor script:
 
 ```bash
-_ssh_auth=$(awk 'NR==1{print $1}' "$SSH_USER_AUTH" 2>/dev/null); [ -z "$_ssh_auth" ] && _ssh_auth="unknown"
+_ssh_auth="unknown"; [ -n "$SSH_USER_AUTH" ] && _ssh_auth=$(awk 'NR==1{print $1}' "$SSH_USER_AUTH" 2>/dev/null); [ -z "$_ssh_auth" ] && _ssh_auth="unknown"
 echo "$(date '+%Y-%m-%d %H:%M:%S %z') ${SSH_CLIENT%% *} $USER $_ssh_auth" >> ~/.ssh_logins
 /usr/bin/python3 ~/bin/ssh_login_monitor.py
 ```
