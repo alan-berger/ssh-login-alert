@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 ssh_login_monitor.py
-Monitors a login log file for new entries and sends an email alert per new login.
-Designed to be called from ~/.bash_profile on login, and optionally via cron as a fallback.
+Monitors ~/.ssh_logins for new entries and sends an email alert per new login.
+Run via cron every minute.
 """
 
 import sys
@@ -20,13 +20,11 @@ STATE_FILE  = HOME / ".ssh_login_monitor.state"
 LOGINLOG    = HOME / ".ssh_logins"
 LOG_FILE    = HOME / "logs" / "ssh_login_monitor.log"
 
-
 def log(msg: str):
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(LOG_FILE, "a") as f:
         f.write(f"[{ts}] {msg}\n")
-
 
 def load_config() -> configparser.ConfigParser:
     if not CONFIG_FILE.exists():
@@ -35,7 +33,6 @@ def load_config() -> configparser.ConfigParser:
     cfg = configparser.ConfigParser()
     cfg.read(CONFIG_FILE)
     return cfg
-
 
 def send_email(cfg: configparser.ConfigParser, subject: str, body: str):
     to_addr   = cfg["alert"]["to"]
@@ -48,19 +45,24 @@ def send_email(cfg: configparser.ConfigParser, subject: str, body: str):
     msg["To"]      = to_addr
 
     if method == "smtp":
-        host     = cfg["smtp"]["host"]
-        port     = int(cfg["smtp"].get("port", 587))
-        user     = cfg["smtp"]["user"]
-        password = cfg["smtp"]["password"]
-        use_tls  = cfg["smtp"].getboolean("starttls", True)
+        host      = cfg["smtp"]["host"]
+        port      = int(cfg["smtp"].get("port", 587))
+        user      = cfg["smtp"]["user"]
+        password  = cfg["smtp"]["password"]
+        use_ssl   = cfg["smtp"].getboolean("ssl", False)
+        use_tls   = cfg["smtp"].getboolean("starttls", True)
 
-        with smtplib.SMTP(host, port, timeout=15) as s:
-            if use_tls:
-                s.starttls()
-            s.login(user, password)
-            s.sendmail(from_addr, [to_addr], msg.as_string())
+        if use_ssl:
+            with smtplib.SMTP_SSL(host, port, timeout=15) as s:
+                s.login(user, password)
+                s.sendmail(from_addr, [to_addr], msg.as_string())
+        else:
+            with smtplib.SMTP(host, port, timeout=15) as s:
+                if use_tls:
+                    s.starttls()
+                s.login(user, password)
+                s.sendmail(from_addr, [to_addr], msg.as_string())
     else:
-        # sendmail — available on most Linux/cPanel hosts, no authentication required
         proc = subprocess.run(
             ["/usr/sbin/sendmail", "-t", "-oi"],
             input=msg.as_string(),
@@ -72,58 +74,41 @@ def send_email(cfg: configparser.ConfigParser, subject: str, body: str):
         if proc.returncode != 0:
             raise RuntimeError(f"sendmail exited {proc.returncode}: {proc.stderr}")
 
-
 def get_stored_count() -> int:
     try:
         return int(STATE_FILE.read_text().strip())
     except (FileNotFoundError, ValueError):
         return -1
 
-
 def store_count(count: int):
     STATE_FILE.write_text(str(count))
 
-
 def parse_login_line(line: str) -> dict:
-    """
-    Parse a line written by the ~/.bash_profile logger.
-    Format: YYYY-MM-DD HH:MM:SS +TZ IP USERNAME AUTHMETHOD
-    Example: 2026-04-13 16:46:59 +0100 81.152.11.244 alice publickey
-    """
+    """Parse 'YYYY-MM-DD HH:MM:SS +TZ IP' into a dict."""
     try:
         parts = line.strip().split()
-        return {
-            "timestamp":   f"{parts[0]} {parts[1]} {parts[2]}",
-            "ip":          parts[3],
-            "username":    parts[4],
-            "auth_method": parts[5] if len(parts) > 5 else "unknown",
-        }
+        ip        = parts[3]
+        timestamp = f"{parts[0]} {parts[1]} {parts[2]}"
+        return {"ip": ip, "timestamp": timestamp}
     except (IndexError, ValueError):
-        return {
-            "timestamp":   "unknown",
-            "ip":          "unknown",
-            "username":    "unknown",
-            "auth_method": "unknown",
-        }
-
+        return {"ip": "unknown", "timestamp": line.strip()}
 
 def main():
     if not LOGINLOG.exists():
         log("WARNING: ~/.ssh_logins not found — has ~/.bash_profile been updated?")
         return
 
-    lines         = [l.strip() for l in LOGINLOG.read_text().splitlines() if l.strip()]
+    lines = [l.strip() for l in LOGINLOG.read_text().splitlines() if l.strip()]
     current_count = len(lines)
     stored_count  = get_stored_count()
 
     if stored_count == -1:
-        # First run — seed the state file without alerting on existing entries
         store_count(current_count)
         log(f"First run — seeding state with {current_count} existing entries")
         return
 
     if current_count <= stored_count:
-        return  # No new entries
+        return
 
     new_lines = lines[stored_count:]
     cfg       = load_config()
@@ -135,16 +120,13 @@ def main():
         subject = f"[{hostname}] SSH login from {parsed['ip']}"
         body = (
             f"New SSH login detected on {hostname}.\n\n"
-            f"IP address   : {parsed['ip']}\n"
-            f"Username     : {parsed['username']}\n"
-            f"Auth method  : {parsed['auth_method']}\n"
-            f"Login time   : {parsed['timestamp']}\n\n"
+            f"IP address : {parsed['ip']}\n"
+            f"Login time : {parsed['timestamp']}\n\n"
             f"If this was not you, take action immediately.\n"
         )
         try:
             send_email(cfg, subject, body)
-            log(f"Alert sent — login from {parsed['ip']} as {parsed['username']} "
-                f"({parsed['auth_method']}) at {parsed['timestamp']}")
+            log(f"Alert sent — login from {parsed['ip']} at {parsed['timestamp']}")
         except Exception as e:
             log(f"ERROR sending alert for {parsed['ip']}: {e}")
             errors.append(line)
@@ -152,12 +134,9 @@ def main():
     if not errors:
         store_count(current_count)
     else:
-        # Partial failure — advance state only to the last successfully alerted line
-        # so the next run retries any unsent alerts
         failed_index = lines.index(errors[0])
         store_count(failed_index)
         log(f"Partial failure — state advanced to line {failed_index}, will retry remaining")
-
 
 if __name__ == "__main__":
     main()
