@@ -1,4 +1,4 @@
-# ssh-login-alert
+# ssh-login-alert — profile collector
 
 ![Python](https://img.shields.io/badge/python-3.6%2B-blue?logo=python&logoColor=white)
 ![Shell](https://img.shields.io/badge/shell-bash-green?logo=gnu-bash&logoColor=white)
