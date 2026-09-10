@@ -1,0 +1,46 @@
+[Unit]
+Description=SSH authentication alerting (journald-sourced)
+Documentation=https://github.com/alan-berger/ssh-login-alert
+After=network-online.target systemd-journald.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/ssh_login_alert.py
+Restart=always
+RestartSec=5
+
+# Unprivileged, but in systemd-journal so it can read the system journal.
+User=sshalert
+Group=sshalert
+SupplementaryGroups=systemd-journal
+
+# systemd creates and chowns these, and exports STATE_DIRECTORY /
+# CONFIGURATION_DIRECTORY into the environment for the script to pick up.
+StateDirectory=ssh-login-alert
+StateDirectoryMode=0700
+ConfigurationDirectory=ssh-login-alert
+ConfigurationDirectoryMode=0700
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target
