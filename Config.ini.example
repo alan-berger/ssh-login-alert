@@ -1,0 +1,45 @@
+; ssh-login-alert configuration
+;
+; Install to /etc/ssh-login-alert/config.ini for the journald collector, or
+; ~/.ssh_login_monitor.conf for the profile collector.
+;
+; chmod 600 and chown to the service user — this file contains a password.
+
+[alert]
+to          = you@example.com
+from        = ssh-alerts@example.com
+
+; "smtp" or "sendmail"
+method      = smtp
+
+; Reverse-DNS the source address. Set false if your resolver is slow, or you
+; would rather not emit a PTR query per login.
+resolve_ptr = true
+
+; Syslog identifiers to follow (journald collector only). Leave unset to use
+; the default of sshd, sshd-session, sshd-auth, which covers OpenSSH before
+; and after the 9.8 daemon split.
+; journal_identifiers = sshd, sshd-session, sshd-auth
+
+[smtp]
+host     = mail.example.com
+
+; Port 587 with STARTTLS, or port 465 with implicit TLS. The two are mutually
+; exclusive — setting ssl = true against a STARTTLS port hangs until timeout.
+port     = 587
+user     = ssh-alerts@example.com
+password = CHANGEME
+ssl      = false
+starttls = true
+
+[filter]
+; Optional. Suppress alerts you have decided are noise. Empty means alert on
+; everything, which is the safe default.
+ignore_users =
+ignore_ips   = 127.0.0.1/32, ::1/128
+
+[keys]
+; Optional. Map public key fingerprints to friendly names so alerts identify
+; which key was used:  ssh-keygen -lf ~/.ssh/id_ed25519.pub
+; Fingerprints are case sensitive.
+; SHA256:REPLACE_WITH_YOUR_FINGERPRINT = laptop ed25519
