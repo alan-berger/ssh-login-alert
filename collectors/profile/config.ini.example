@@ -1,0 +1,94 @@
+; ssh-login-alert — profile collector configuration
+;
+;   cp config.ini.example ~/.ssh_login_monitor.conf
+;   chmod 600 ~/.ssh_login_monitor.conf
+;
+; This file contains a password if you use SMTP. Keep it mode 0600.
+;
+; There are three delivery paths. Pick ONE, uncomment it, and leave the
+; others commented out:
+;
+;   1. Local sendmail          — no credentials, no [smtp] section
+;   2. SMTP with STARTTLS      — port 587
+;   3. SMTP with implicit TLS  — port 465
+;
+; Paths 2 and 3 are the only two TLS models that exist for SMTP. They are
+; mutually exclusive: exactly one of ssl / starttls is true. Setting
+; ssl = true against a STARTTLS port hangs until the connection times out.
+
+
+; ---------------------------------------------------------------------------
+; 1. LOCAL SENDMAIL  (default — usually the right choice on shared hosting)
+; ---------------------------------------------------------------------------
+; Hands the message to the local MTA over a pipe. No credentials, no network,
+; nothing to rotate. Delete the [smtp] section entirely if you use this.
+;
+; Caveat: the local MTA chooses the envelope sender, which is often something
+; like cp123456.hostingprovider.net rather than your domain. That can fail SPF
+; alignment and show up as a DMARC failure, even though the mail is delivered.
+; If you care about alignment, use SMTP below instead.
+
+[alert]
+to     = you@example.com
+from   = alerts@yourdomain.com
+method = sendmail
+
+
+; ---------------------------------------------------------------------------
+; 2. SMTP WITH STARTTLS  (port 587 — submission)
+; ---------------------------------------------------------------------------
+; The connection opens in plaintext and is upgraded in place by the STARTTLS
+; command. This is the modern default for mail submission.
+;
+; Certificate and hostname verification are enforced. The certificate the
+; server presents must be valid for the exact name in "host", or the send
+; fails with an SSLCertVerificationError.
+;
+; [alert]
+; to     = you@example.com
+; from   = alerts@yourdomain.com
+; method = smtp
+;
+; [smtp]
+; host     = mail.yourdomain.com
+; port     = 587
+; user     = alerts@yourdomain.com
+; password = CHANGEME
+; ssl      = false
+; starttls = true
+
+
+; ---------------------------------------------------------------------------
+; 3. SMTP WITH IMPLICIT TLS  (port 465 — SMTPS)
+; ---------------------------------------------------------------------------
+; The socket is encrypted from the first byte; there is no plaintext phase.
+; Functionally equivalent to STARTTLS in security terms — use whichever your
+; mail provider supports. If they support both, either is fine.
+;
+; [alert]
+; to     = you@example.com
+; from   = alerts@yourdomain.com
+; method = smtp
+;
+; [smtp]
+; host     = mail.yourdomain.com
+; port     = 465
+; user     = alerts@yourdomain.com
+; password = CHANGEME
+; ssl      = true
+; starttls = false
+
+
+; ---------------------------------------------------------------------------
+; Notes
+; ---------------------------------------------------------------------------
+; "user" must be a real mailbox that can authenticate. An alias is only a
+; delivery rewrite rule, has no password, and will fail with
+; "535 5.7.8 authentication failed".
+;
+; "user" and "from" are independent — you can authenticate as one address and
+; send as another, unless your server enforces sender/login matching (Postfix
+; reject_sender_login_mismatch), in which case they must agree.
+;
+; The [filter] and [keys] sections used by the journald collector are not
+; supported here.
