@@ -87,7 +87,10 @@ def load_config() -> configparser.ConfigParser:
     if not CONFIG_FILE.exists():
         log.error("config file not found: %s", CONFIG_FILE)
         sys.exit(1)
-    cfg = configparser.ConfigParser()
+    # Split on "=" only. The default also treats ":" as a delimiter, which
+    # turns every "SHA256:xxxx = name" line in [keys] into an option called
+    # "SHA256": lookups never match and a second key is a DuplicateOptionError.
+    cfg = configparser.ConfigParser(delimiters=("=",))
     # Public key fingerprints are case-sensitive base64; do not lowercase keys.
     cfg.optionxform = str
     cfg.read(CONFIG_FILE)

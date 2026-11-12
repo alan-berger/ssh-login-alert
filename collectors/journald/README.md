@@ -163,6 +163,10 @@ ignore_ips   = 127.0.0.1/32, ::1/128
 SHA256:YOUR_FINGERPRINT_HERE = laptop ed25519
 ```
 
+Options must be written `name = value`. The config is parsed with `=` as the
+only delimiter so that fingerprints, which contain a `:`, can be used as
+option names in `[keys]`; `name: value` is not accepted.
+
 `ssl` and `starttls` select the TLS *model*, not whether TLS is used, and are
 mutually exclusive. Port 465 is implicit TLS (`ssl = true`); port 587 is
 STARTTLS (`starttls = true`). Setting `ssl = true` against a STARTTLS port
@@ -256,7 +260,7 @@ Credentials. Test exactly what the daemon reads:
 ```bash
 sudo -u sshalert python3 -c "
 import configparser, smtplib
-c = configparser.ConfigParser(); c.optionxform = str
+c = configparser.ConfigParser(delimiters=('=',)); c.optionxform = str
 c.read('/etc/ssh-login-alert/config.ini')
 s = smtplib.SMTP(c['smtp']['host'], int(c['smtp']['port']), timeout=20)
 s.starttls(); s.login(c['smtp']['user'], c['smtp']['password'])
